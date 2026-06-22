@@ -955,3 +955,701 @@ POST /api/auth/login
 Protected
 GET /api/auth/profile
 
+
+Lab 02 : Part 3 – Task Management
+Step 1 – Verify Current User Schema
+Open:
+src/models/User.js
+No changes required.
+Step 2 – Update Task Schema
+Open:
+src/models/Task.js
+Replace with:
+src/models/Task.js
+const mongoose = require("mongoose");
+
+const taskSchema = new mongoose.Schema(
+ {
+   title: {
+     type: String,
+     required: [true, "Title required"],
+     trim: true
+   },
+
+   description: {
+     type: String,
+     default: ""
+   },
+
+   status: {
+     type: String,
+     enum: [
+       "Pending",
+       "In Progress",
+       "Completed"
+     ],
+     default: "Pending"
+   },
+
+   priority: {
+     type: String,
+     enum: [
+       "Low",
+       "Medium",
+       "High"
+     ],
+     default: "Medium"
+   },
+
+   assignedUser: {
+     type: mongoose.Schema.Types.ObjectId,
+     ref: "User",
+     required: true
+   },
+
+   createdBy: {
+     type: mongoose.Schema.Types.ObjectId,
+     ref: "User",
+     required: true
+   }
+
+ },
+ {
+   timestamps: true
+ }
+);
+
+module.exports = mongoose.model(
+ "Task",
+ taskSchema
+);
+Step 3 – Create Task Controller
+Create file:
+src/controllers/taskController.js
+Complete taskController.js
+const Task = require("../models/Task");
+const User = require("../models/User");
+
+
+// ======================================
+// Create Task
+// ======================================
+
+const createTask = async (
+ req,
+ res
+) => {
+
+ try {
+
+   const {
+     title,
+     description,
+     priority,
+     assignedUser
+   } = req.body;
+
+   const userExists =
+     await User.findById(
+       assignedUser
+     );
+
+   if (!userExists) {
+
+     return res.status(404).json({
+       success: false,
+       message: "Assigned user not found"
+     });
+
+   }
+
+   const task =
+     await Task.create({
+
+       title,
+
+       description,
+
+       priority,
+
+       assignedUser,
+
+       createdBy: req.user.id
+
+     });
+
+   res.status(201).json({
+
+     success: true,
+
+     message: "Task Created",
+
+     data: task
+
+   });
+
+ } catch (error) {
+
+   console.error(error);
+
+   res.status(500).json({
+
+     success: false,
+
+     message: "Server Error"
+
+   });
+
+ }
+
+};
+
+
+
+// ======================================
+// Get Tasks
+// ======================================
+
+const getTasks = async (
+ req,
+ res
+) => {
+
+ try {
+
+   let tasks;
+
+   if (
+     req.user.role === "admin"
+   ) {
+
+     tasks =
+       await Task.find()
+
+         .populate(
+           "assignedUser",
+           "name email role"
+         )
+
+         .populate(
+           "createdBy",
+           "name email role"
+         );
+
+   } else {
+
+     tasks =
+       await Task.find({
+         assignedUser:
+           req.user.id
+       })
+
+         .populate(
+           "assignedUser",
+           "name email role"
+         )
+
+         .populate(
+           "createdBy",
+           "name email role"
+         );
+
+   }
+
+   res.status(200).json({
+
+     success: true,
+
+     count: tasks.length,
+
+     data: tasks
+
+   });
+
+ } catch (error) {
+
+   console.error(error);
+
+   res.status(500).json({
+
+     success: false,
+
+     message: "Server Error"
+
+   });
+
+ }
+
+};
+
+
+
+// ======================================
+// Get Single Task
+// ======================================
+
+const getTaskById = async (
+ req,
+ res
+) => {
+
+ try {
+
+   const task =
+     await Task.findById(
+       req.params.id
+     )
+
+       .populate(
+         "assignedUser",
+         "name email role"
+       )
+
+       .populate(
+         "createdBy",
+         "name email role"
+       );
+
+   if (!task) {
+
+     return res.status(404).json({
+
+       success: false,
+
+       message: "Task not found"
+
+     });
+
+   }
+
+   if (
+     req.user.role !== "admin" &&
+     task.assignedUser._id.toString() !==
+     req.user.id
+   ) {
+
+     return res.status(403).json({
+
+       success: false,
+
+       message: "Access Denied"
+
+     });
+
+   }
+
+   res.status(200).json({
+
+     success: true,
+
+     data: task
+
+   });
+
+ } catch (error) {
+
+   res.status(500).json({
+
+     success: false,
+
+     message: "Server Error"
+
+   });
+
+ }
+
+};
+
+
+
+// ======================================
+// Update Task
+// ======================================
+
+const updateTask = async (
+ req,
+ res
+) => {
+
+ try {
+
+   const task =
+     await Task.findById(
+       req.params.id
+     );
+
+   if (!task) {
+
+     return res.status(404).json({
+
+       success: false,
+
+       message: "Task not found"
+
+     });
+
+   }
+
+   if (
+     req.user.role !== "admin" &&
+     task.assignedUser.toString() !==
+     req.user.id
+   ) {
+
+     return res.status(403).json({
+
+       success: false,
+
+       message: "Access Denied"
+
+     });
+
+   }
+
+   const updatedTask =
+     await Task.findByIdAndUpdate(
+
+       req.params.id,
+
+       req.body,
+
+       {
+         new: true,
+         runValidators: true
+       }
+
+     );
+
+   res.status(200).json({
+
+     success: true,
+
+     message: "Task Updated",
+
+     data: updatedTask
+
+   });
+
+ } catch (error) {
+
+   console.error(error);
+
+   res.status(500).json({
+
+     success: false,
+
+     message: "Server Error"
+
+   });
+
+ }
+
+};
+
+
+
+// ======================================
+// Delete Task
+// ======================================
+
+const deleteTask = async (
+ req,
+ res
+) => {
+
+ try {
+
+   const task =
+     await Task.findById(
+       req.params.id
+     );
+
+   if (!task) {
+
+     return res.status(404).json({
+
+       success: false,
+
+       message: "Task not found"
+
+     });
+
+   }
+
+   if (
+     req.user.role !== "admin"
+   ) {
+
+     return res.status(403).json({
+
+       success: false,
+
+       message:
+         "Only Admin can delete tasks"
+
+     });
+
+   }
+
+   await task.deleteOne();
+
+   res.status(200).json({
+
+     success: true,
+
+     message:
+       "Task Deleted Successfully"
+
+   });
+
+ } catch (error) {
+
+   console.error(error);
+
+   res.status(500).json({
+
+     success: false,
+
+     message: "Server Error"
+
+   });
+
+ }
+
+};
+
+module.exports = {
+
+ createTask,
+
+ getTasks,
+
+ getTaskById,
+
+ updateTask,
+
+ deleteTask
+
+};
+Step 4 – Create Task Routes
+Create:
+src/routes/taskRoutes.js
+Complete taskRoutes.js
+const express = require("express");
+
+const router =
+ express.Router();
+
+const authMiddleware =
+require("../middleware/authMiddleware");
+
+const {
+
+ createTask,
+
+ getTasks,
+
+ getTaskById,
+
+ updateTask,
+
+ deleteTask
+
+} =
+require("../controllers/taskController");
+
+
+
+// Create Task
+
+router.post(
+ "/",
+ authMiddleware,
+ createTask
+);
+
+
+// Get All Tasks
+
+router.get(
+ "/",
+ authMiddleware,
+ getTasks
+);
+
+
+// Get Single Task
+
+router.get(
+ "/:id",
+ authMiddleware,
+ getTaskById
+);
+
+
+// Update Task
+
+router.put(
+ "/:id",
+ authMiddleware,
+ updateTask
+);
+
+
+// Delete Task
+
+router.delete(
+ "/:id",
+ authMiddleware,
+ deleteTask
+);
+
+module.exports = router;
+Step 5 – Register Routes
+Open:
+src/app.js
+Add import:
+const taskRoutes =
+require("./routes/taskRoutes");
+Add route registration:
+app.use(
+ "/api/tasks",
+ taskRoutes
+);
+Final route section:
+app.use(
+ "/api/auth",
+ authRoutes
+);
+
+app.use(
+ "/api/tasks",
+ taskRoutes
+);
+Step 6 – Restart Server
+npm run dev
+Expected:
+MongoDB Connected Successfully
+
+Server Running On Port 5000
+Step 7 – Create Test Users
+Already created in Part 2.
+Admin:
+{
+ "email":"admin@test.com",
+ "password":"password123"
+}
+User:
+{
+ "email":"john@test.com",
+ "password":"password123"
+}
+Step 8 – Login as Admin
+POST
+/api/auth/login
+Copy token.
+Step 9 – Find User ID
+Login as user.
+POST
+/api/auth/login
+Response:
+{
+ "user":{
+   "id":"6844f8..."
+ }
+}
+Copy ID.
+Step 10 – Create Task
+POST http://localhost:5000/api/tasks
+Headers:
+Authorization
+
+Bearer ADMIN_TOKEN
+Body:
+{
+ "title":"Deploy Application",
+ "description":"Deploy React App to S3",
+ "priority":"High",
+ "assignedUser":"USER_ID"
+}
+Expected:
+{
+ "success":true,
+ "message":"Task Created"
+}
+Step 11 – Admin View Tasks
+GET
+/api/tasks
+Header:
+Bearer ADMIN_TOKEN
+Expected:
+{
+ "count":1,
+ "data":[]
+}
+Admin sees:
+All Tasks
+Step 12 – User View Tasks
+Login as user.
+Use USER_TOKEN.
+GET
+/api/tasks
+Expected:
+Only assigned tasks
+User cannot see everyone else's tasks.
+Step 13 – Get Single Task
+GET
+/api/tasks/{taskId}
+Response:
+{
+ "success":true,
+ "data":{
+   "title":"Deploy Application"
+ }
+}
+Step 14 – Update Task
+PUT
+/api/tasks/{taskId}
+Body:
+{
+ "status":"Completed"
+}
+Expected:
+{
+ "message":"Task Updated"
+}
+Step 15 – Delete Task
+Admin Only
+DELETE
+/api/tasks/{taskId}
+Expected:
+{
+ "message":"Task Deleted Successfully"
+}
+
+Step 16 – RBAC Verification
+User Delete Attempt
+DELETE
+/api/tasks/{taskId}
+Response:
+{
+ "success":false,
+ "message":"Only Admin can delete tasks"
+}
+Step 17 – Verify MongoDB
+Collection:
+tasks
+Example:
+{
+ "_id":"...",
+ "title":"Deploy Application",
+ "description":"Deploy React App",
+ "status":"Pending",
+ "priority":"High",
+ "assignedUser":"...",
+ "createdBy":"...",
+ "createdAt":"...",
+ "updatedAt":"..."
+}
+
+
