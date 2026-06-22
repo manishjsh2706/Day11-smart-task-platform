@@ -3,6 +3,10 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 
+const taskRoutes =
+require("./routes/taskRoutes");
+
+
 const authRoutes =
 require("./routes/authRoutes");
 
@@ -15,6 +19,22 @@ app.use(cors());
 app.use(helmet());
 
 app.use(morgan("dev"));
+
+app.use(
+ "/api/tasks",
+ taskRoutes
+);
+
+app.use(
+ "/api/auth",
+ authRoutes
+);
+
+app.use(
+ "/api/tasks",
+ taskRoutes
+);
+
 
 
 // Routes

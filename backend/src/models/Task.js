@@ -4,7 +4,7 @@ const taskSchema = new mongoose.Schema(
  {
    title: {
      type: String,
-     required: [true, "Task title required"],
+     required: [true, "Title required"],
      trim: true
    },
 
@@ -37,11 +37,21 @@ const taskSchema = new mongoose.Schema(
      type: mongoose.Schema.Types.ObjectId,
      ref: "User",
      required: true
+   },
+
+   createdBy: {
+     type: mongoose.Schema.Types.ObjectId,
+     ref: "User",
+     required: true
    }
+
  },
  {
    timestamps: true
  }
 );
 
-module.exports = mongoose.model("Task", taskSchema);
+module.exports = mongoose.model(
+ "Task",
+ taskSchema
+);
