@@ -1653,3 +1653,691 @@ Example:
 }
 
 
+Lab 02 - Part 4 – React Frontend
+Step 1 – Create Frontend
+From root folder:
+cd smart-task-platform
+
+npx create-react-app frontend
+Step 2 – Install Dependencies
+cd frontend
+
+npm install axios react-router-dom
+Step 3 – Frontend Structure
+Create structure:
+frontend
+│
+├── public
+│
+├── src
+│
+│   ├── api
+│   │     api.js
+│   │
+│   ├── components
+│   │     Navbar.jsx
+│   │     ProtectedRoute.jsx
+│   │     TaskCard.jsx
+│   │
+│   ├── pages
+│   │     Login.jsx
+│   │     Register.jsx
+│   │     Dashboard.jsx
+│   │     CreateTask.jsx
+│   │     EditTask.jsx
+│   │
+│   ├── services
+│   │     authService.js
+│   │     taskService.js
+│   │
+│   ├── App.js
+│   ├── index.js
+│   └── App.css
+│
+└── .env
+Step 4 – Environment File
+Create:
+.env
+REACT_APP_API_URL=http://localhost:5000/api
+Restart React whenever .env changes.
+Step 5 – Axios Configuration
+Create:
+src/api/api.js
+api.js
+import axios from "axios";
+
+const api = axios.create({
+
+ baseURL:
+   process.env.REACT_APP_API_URL
+
+});
+
+api.interceptors.request.use(
+
+ (config) => {
+
+   const token =
+     localStorage.getItem("token");
+
+   if (token) {
+
+     config.headers.Authorization =
+       `Bearer ${token}`;
+   }
+
+   return config;
+ }
+
+);
+
+export default api;
+Step 6 – Authentication Service
+Create:
+src/services/authService.js
+authService.js
+import api from "../api/api";
+
+export const loginUser = (data) =>
+ api.post("/auth/login", data);
+
+export const registerUser = (data) =>
+ api.post("/auth/register", data);
+
+export const getProfile = () =>
+ api.get("/auth/profile");
+Step 7 – Task Service
+Create:
+src/services/taskService.js
+taskService.js
+import api from "../api/api";
+
+export const getTasks = () =>
+ api.get("/tasks");
+
+export const getTask = (id) =>
+ api.get(`/tasks/${id}`);
+
+export const createTask = (data) =>
+ api.post("/tasks", data);
+
+export const updateTask = (
+ id,
+ data
+) =>
+ api.put(`/tasks/${id}`, data);
+
+export const deleteTask = (id) =>
+ api.delete(`/tasks/${id}`);
+Step 8 – Protected Route
+Create:
+src/components/ProtectedRoute.jsx
+ProtectedRoute.jsx
+import {
+Navigate
+} from "react-router-dom";
+
+const ProtectedRoute = ({
+children
+}) => {
+
+const token =
+  localStorage.getItem("token");
+
+return token
+  ? children
+  : <Navigate to="/" />;
+};
+
+export default ProtectedRoute;
+Step 9 – Login Page
+Create:
+src/pages/Login.jsx
+Login.jsx
+import { useState } from "react";
+import { loginUser }
+from "../services/authService";
+
+const Login = () => {
+
+const [form,setForm] =
+useState({
+
+  email:"",
+  password:""
+
+});
+
+const handleChange=(e)=>{
+
+  setForm({
+   ...form,
+   [e.target.name]:
+   e.target.value
+  });
+
+};
+
+const handleSubmit=
+async(e)=>{
+
+  e.preventDefault();
+
+  try{
+
+   const response=
+     await loginUser(form);
+
+   localStorage.setItem(
+     "token",
+     response.data.token
+   );
+
+   localStorage.setItem(
+     "role",
+     response.data.user.role
+   );
+
+   window.location="/dashboard";
+
+  }
+  catch(error){
+
+    alert("Login Failed");
+
+  }
+
+};
+
+return(
+
+ <div>
+
+  <h2>Login</h2>
+
+  <form
+   onSubmit={handleSubmit}
+  >
+
+   <input
+
+     name="email"
+
+     placeholder="Email"
+
+     onChange={handleChange}
+
+   />
+
+   <input
+
+     type="password"
+
+     name="password"
+
+     placeholder="Password"
+
+     onChange={handleChange}
+
+   />
+
+   <button>
+     Login
+   </button>
+
+  </form>
+
+ </div>
+
+);
+
+};
+
+export default Login;
+Step 10 – Register Page
+Create:
+src/pages/Register.jsx
+Register.jsx
+import { useState }
+from "react";
+
+import {
+registerUser
+}
+from "../services/authService";
+
+const Register=()=>{
+
+const [form,setForm]=
+useState({
+
+ name:"",
+ email:"",
+ password:""
+
+});
+
+const submit=
+async(e)=>{
+
+  e.preventDefault();
+
+  await registerUser(form);
+
+  alert(
+    "Registration Successful"
+  );
+
+  window.location="/";
+
+};
+
+return(
+
+ <form onSubmit={submit}>
+
+  <input
+   placeholder="Name"
+   onChange={(e)=>
+    setForm({
+     ...form,
+     name:e.target.value
+    })
+   }
+  />
+
+  <input
+   placeholder="Email"
+   onChange={(e)=>
+    setForm({
+     ...form,
+     email:e.target.value
+    })
+   }
+  />
+
+  <input
+   type="password"
+   placeholder="Password"
+   onChange={(e)=>
+    setForm({
+     ...form,
+     password:e.target.value
+    })
+   }
+  />
+
+  <button>
+   Register
+  </button>
+
+ </form>
+
+);
+
+};
+
+export default Register;
+Step 11 – Task Card Component
+Create:
+src/components/TaskCard.jsx
+TaskCard.jsx
+const TaskCard = ({
+task,
+onDelete
+}) => {
+
+return(
+
+ <div
+  style={{
+   border:"1px solid #ddd",
+   padding:"15px",
+   margin:"10px"
+  }}
+ >
+
+  <h3>{task.title}</h3>
+
+  <p>
+   {task.description}
+  </p>
+
+  <p>
+   Status:
+   {task.status}
+  </p>
+
+  <p>
+   Priority:
+   {task.priority}
+  </p>
+
+  <button
+   onClick={()=>
+     onDelete(task._id)
+   }
+  >
+   Delete
+  </button>
+
+ </div>
+
+);
+
+};
+
+export default TaskCard;
+Step 12 – Dashboard Page
+Create:
+src/pages/Dashboard.jsx
+Dashboard.jsx
+import {
+useEffect,
+useState
+}
+from "react";
+
+import {
+getTasks,
+deleteTask
+}
+from "../services/taskService";
+
+import TaskCard
+from "../components/TaskCard";
+
+const Dashboard=()=>{
+
+const [tasks,setTasks]=
+useState([]);
+
+const loadTasks=
+async()=>{
+
+  const response=
+   await getTasks();
+
+  setTasks(
+    response.data.data
+  );
+
+};
+
+useEffect(()=>{
+
+  loadTasks();
+
+},[]);
+
+const removeTask=
+async(id)=>{
+
+  await deleteTask(id);
+
+  loadTasks();
+
+};
+
+return(
+
+ <div>
+
+  <h2>
+   Dashboard
+  </h2>
+
+  {
+   tasks.map(task=>(
+     <TaskCard
+
+      key={task._id}
+
+      task={task}
+
+      onDelete={removeTask}
+
+     />
+   ))
+  }
+
+ </div>
+
+);
+
+};
+
+export default Dashboard;
+Step 13 – Create Task Page
+Create:
+src/pages/CreateTask.jsx
+CreateTask.jsx
+import {
+useState
+}
+from "react";
+
+import {
+createTask
+}
+from "../services/taskService";
+
+const CreateTask=()=>{
+
+const [task,setTask]=
+useState({
+
+  title:"",
+  description:"",
+  priority:"Medium",
+  assignedUser:""
+
+});
+
+const submit=
+async(e)=>{
+
+ e.preventDefault();
+
+ await createTask(task);
+
+ alert("Task Created");
+
+};
+
+return(
+
+ <form
+  onSubmit={submit}
+ >
+
+  <input
+
+   placeholder="Title"
+
+   onChange={(e)=>
+
+    setTask({
+     ...task,
+     title:e.target.value
+    })
+
+   }
+
+  />
+
+  <textarea
+
+   placeholder="Description"
+
+   onChange={(e)=>
+
+    setTask({
+     ...task,
+     description:e.target.value
+    })
+
+   }
+
+  />
+
+  <input
+
+   placeholder="Assigned User Id"
+
+   onChange={(e)=>
+
+    setTask({
+     ...task,
+     assignedUser:e.target.value
+    })
+
+   }
+
+  />
+
+  <button>
+
+    Save
+
+  </button>
+
+ </form>
+
+);
+
+};
+
+export default CreateTask;
+Step 14 – Navbar
+Create:
+src/components/Navbar.jsx
+Navbar.jsx
+import {
+Link
+}
+from "react-router-dom";
+
+const Navbar=()=>{
+
+const logout=()=>{
+
+ localStorage.clear();
+
+ window.location="/";
+
+};
+
+return(
+
+ <nav>
+
+  <Link to="/dashboard">
+   Dashboard
+  </Link>
+
+  {" | "}
+
+  <Link to="/create-task">
+   Create Task
+  </Link>
+
+  {" | "}
+
+  <button
+   onClick={logout}
+  >
+   Logout
+  </button>
+
+ </nav>
+
+);
+
+};
+
+export default Navbar;
+Step 15 – App.js
+Replace entire file.
+import {
+BrowserRouter,
+Routes,
+Route
+}
+from "react-router-dom";
+
+import Login
+from "./pages/Login";
+
+import Register
+from "./pages/Register";
+
+import Dashboard
+from "./pages/Dashboard";
+
+import CreateTask
+from "./pages/CreateTask";
+
+import Navbar
+from "./components/Navbar";
+
+import ProtectedRoute
+from "./components/ProtectedRoute";
+
+function App() {
+
+return (
+
+ <BrowserRouter>
+
+  <Navbar />
+
+  <Routes>
+
+   <Route
+     path="/"
+     element={<Login />}
+   />
+
+   <Route
+     path="/register"
+     element={<Register />}
+   />
+
+   <Route
+
+     path="/dashboard"
+
+     element={
+       <ProtectedRoute>
+         <Dashboard />
+       </ProtectedRoute>
+     }
+
+   />
+
+   <Route
+
+     path="/create-task"
+
+     element={
+      <ProtectedRoute>
+       <CreateTask />
+      </ProtectedRoute>
+     }
+
+   />
+
+  </Routes>
+
+ </BrowserRouter>
+
+);
+
+}
+
+export default App;
+Step 16 – Run Frontend
+npm start
+React launches: http://localhost:3000
+
