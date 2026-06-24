@@ -39,14 +39,11 @@ jobs:
      - name: Configure AWS
        uses: aws-actions/configure-aws-credentials@v4
        with:
-         aws-access-key-id:
-           ${{ secrets.AWS_ACCESS_KEY_ID }}
+         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
 
-         aws-secret-access-key:
-           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-         aws-region:
-           ${{ secrets.AWS_REGION }}
+         aws-region: ${{ secrets.AWS_REGION }}
 
      - name: Deploy Frontend
        run: |
@@ -73,20 +70,16 @@ jobs:
        uses: aws-actions/configure-aws-credentials@v4
        with:
 
-         aws-access-key-id:
-           ${{ secrets.AWS_ACCESS_KEY_ID }}
+         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
 
-         aws-secret-access-key:
-           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-         aws-region:
-           ${{ secrets.AWS_REGION }}
+         aws-region: ${{ secrets.AWS_REGION }}
 
      - name: Login ECR
        id: login-ecr
 
-       uses:
-         aws-actions/amazon-ecr-login@v2
+       uses: aws-actions/amazon-ecr-login@v2
 
      - name: Build Image
 
